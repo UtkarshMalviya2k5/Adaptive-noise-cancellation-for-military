@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-ANC Operational Console & Soldier Hardware Bay</title>
+  <style>
+    :root {
+      --bg-base: #060911;
+      --bg-panel: #0d121d;
+      --bg-panel-elevated: #131b2a;
+      --bg-interactive: #1a2436;
+      --border-panel: #1b263b;
+      --border-focus: #3b82f6;
+
+      --text-main: #e2e8f0;
+      --text-muted: #798ba3;
+      --text-dim: #475569;
+
+      --status-emerald: #10b981;
+      --status-emerald-glow: rgba(16, 185, 129, 0.15);
+      --status-amber: #f59e0b;
+      --status-indigo: #6366f1;
+      --status-sky: #0ea5e9;
+      --status-rose: #f43f5e;
+      --status-rose-glow: rgba(244, 63, 94, 0.15);
+
+      --bg-chassis: #0e1420;
+      --bg-module: #141b27;
+      --bg-screen: #050a08;
+      --border-bezel: #242f44;
+      --text-crt: #34d399;
+
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      padding: clamp(10px, 2vw, 20px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .mono { font-family: var(--font-mono); }
+    .text-xs { font-size: 0.72rem; }
+    .text-sm { font-size: 0.82rem; }
+    .text-base { font-size: 0.95rem; }
+    .text-lg { font-size: 1.15rem; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 4px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #141c2c;
+      padding-bottom: 6px;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge-emerald { background: var(--status-emerald-glow); color: var(--status-emerald); border-color: var(--status-emerald); }
+    .badge-rose { background: var(--status-rose-glow); color: var(--status-rose); border-color: var(--status-rose); }
+    .badge-amber { background: rgba(245, 158, 11, 0.1); color: var(--status-amber); border-color: var(--status-amber); }
+    .badge-indigo { background: rgba(99, 102, 241, 0.1); color: var(--status-indigo); border-color: var(--status-indigo); }
+    .badge-sky { background: rgba(14, 165, 233, 0.1); color: var(--status-sky); border-color: var(--status-sky); }
+
+    .console-header {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .radio-icon {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      fill: none;
+      stroke: var(--status-emerald);
+      stroke-width: 2;
+    }
+    .header-telemetry {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.78rem;
+    }
+    .telemetry-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .telemetry-cell .label {
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border-radius: 3px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-engage {
+      background: var(--status-emerald);
+      color: #041a11;
+      border-color: var(--status-emerald);
+    }
+    .btn-engage:hover { background: #0ea372; }
+    .btn-pause {
+      background: var(--status-rose);
+      color: #fff;
+      border-color: var(--status-rose);
+    }
+    .btn-pause:hover { background: #e11d48; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-panel);
+      color: var(--text-muted);
+    }
+    .btn-outline:hover {
+      border-color: var(--text-main);
+      color: var(--text-main);
+    }
+
+    .presets-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+    }
+    .preset-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      padding: 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .preset-card:hover {
+      background: var(--bg-panel-elevated);
+      border-color: var(--border-focus);
+    }
+    .preset-card.active {
+      border-color: var(--status-sky);
+      background: #091322;
+      box-shadow: inset 0 0 0 1px var(--status-sky);
+    }
+
+    .dashboard-row-1 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .dashboard-row-2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .dashboard-row-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .metric-gauges-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .data-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.78rem;
+      gap: 8px;
+    }
+    .data-metric-row .metric-label { color: var(--text-muted); }
+    .data-metric-row .metric-val { font-weight: 600; font-family: var(--font-mono); white-space: nowrap; }
+
+    .meter-track {
+      background: #151d2c;
+      height: 6px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .meter-fill { height: 100%; transition: width 0.15s ease; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e2a3c;
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--text-main);
+      cursor: pointer;
+      border: 2px solid var(--border-panel);
+    }
+
+    .waveform-box {
+      width: 100%;
+      height: 80px;
+      background: #070b13;
+      border: 1px solid #141c2c;
+      border-radius: 2px;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 140px;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      min-width: 240px;
+    }
+    .audit-table th {
+      color: var(--text-muted);
+      text-align: left;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--border-panel);
+      white-space: nowrap;
+    }
+    .audit-table td {
+      padding: 6px;
+      border-bottom: 1px solid #111825;
+      white-space: nowrap;
+    }
+
+    /* HARDWARE EXPANSION BAY */
+    .hardware-chassis {
+      background: var(--bg-chassis);
+      border: 2px solid var(--border-bezel);
+      border-radius: 4px;
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.85);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+    }
+
+    .hardware-chassis::before, .hardware-chassis::after {
+      content: "⊕";
+      position: absolute;
+      color: #3b4b69;
+      font-size: 1.1rem;
+      top: 6px;
+    }
+    .hardware-chassis::before { left: 8px; }
+    .hardware-chassis::after { right: 8px; }
+
+    .dataset-selector-box {
+      background: #090e18;
+      border: 1px solid #1c283d;
+      border-radius: 3px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hw-preset-btn-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+
+    .hw-preset-btn {
+      background: #121927;
+      border: 1px solid #23304a;
+      border-radius: 3px;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .hw-preset-btn:hover {
+      background: #1a2438;
+      border-color: var(--text-crt);
+    }
+    .hw-preset-btn.active {
+      background: #0d1f19;
+      border-color: var(--text-crt);
+      box-shadow: inset 0 0 0 1px var(--text-crt);
+    }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .chart-card {
+      background: #0a0f19;
+      border: 1px solid #1a2538;
+      border-radius: 3px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pie-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pie-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.68rem;
+    }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .octave-bar {
+      width: 22px;
+      background: var(--status-indigo);
+      border-radius: 2px;
+      transition: height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .hardware-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 16px;
+    }
+
+    .hw-module {
+      background: var(--bg-module);
+      border: 1px solid var(--border-bezel);
+      border-radius: 3px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .vu-cluster {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .vu-meter {
+      background: #e5e0c5;
+      border: 2px solid #202b3d;
+      border-radius: 2px;
+      padding: 4px;
+      height: 82px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .vu-scale-arc {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      border-bottom: 1px solid #847553;
+    }
+    .vu-txt {
+      position: absolute;
+      font-size: 0.52rem;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      color: #302b1c;
+    }
+    .vu-needle-stick {
+      position: absolute;
+      width: 1.5px;
+      height: 60px;
+      background: #b91c1c;
+      bottom: -15px;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: rotate(-45deg);
+      transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .knobs-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 4px 0;
+    }
+    .knob-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .analog-dial {
+      width: 48px;
+      height: 48px;
+      background: radial-gradient(circle at 35% 35%, #2a3449, #131924 75%);
+      border: 2px solid #37435b;
+      border-radius: 50%;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.15);
+      position: relative;
+      cursor: ns-resize;
+      user-select: none;
+    }
+    .dial-mark {
+      position: absolute;
+      width: 3px;
+      height: 12px;
+      background: #f87171;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 1px;
+    }
+
+    .crt-monitor {
+      background: var(--bg-screen);
+      border: 2px solid #1c2638;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+      height: 200px;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.95);
+    }
+    .crt-monitor::before {
+      content: " ";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .crt-scan {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: linear-gradient(to bottom, rgba(52, 211, 153, 0), rgba(52, 211, 153, 0.25), rgba(52, 211, 153, 0));
+      animation: scanAnim 3.5s linear infinite;
+      pointer-events: none;
+      z-index: 11;
+    }
+    @keyframes scanAnim {
+      0% { top: -10px; }
+      100% { top: 100%; }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-panel-elevated);
+      border: 1px solid var(--border-panel);
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+    }
+
+    @media (max-width: 1100px) {
+      .dashboard-row-1 { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-row-1 article:last-child { grid-column: span 2; }
+      .dashboard-row-2 { grid-template-columns: 1fr; }
+      .hardware-grid { grid-template-columns: 1fr; }
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .console-header { flex-direction: column; align-items: stretch; }
+      .header-telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .header-telemetry button { grid-column: span 2; width: 100%; padding: 10px; }
+      .dashboard-row-1 { grid-template-columns: 1fr; }
+      .dashboard-row-1 article:last-child { grid-column: span 1; }
+      .presets-strip { grid-template-columns: 1fr; }
+      .hw-preset-btn-strip { grid-template-columns: 1fr; }
+      .metric-gauges-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="console-header" role="banner">
+    <div class="brand-cluster">
+      <svg class="radio-icon" viewBox="0 0 24 24">
+        <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9m14.2 0C23 8.8 23 15.2 19.1 19.1M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5m8.4 0c2.3 2.3 2.3 6.1 0 8.5M12 14a2 2 0 100-4 2 2 0 000 4z"/>
+      </svg>
+      <div>
+        <h1 class="text-base font-bold" style="letter-spacing: 0.05em;">AI-ANC OPERATIONAL CONSOLE</h1>
+        <p class="text-xs" style="color: var(--text-muted);">
+          <span class="mono">v2.4-INT8</span> | Target: NVIDIA Jetson AGX Orin | Dual-Channel 16kHz PCM
+        </p>
+      </div>
+    </div>
+
+    <div class="header-telemetry">
+      <div class="telemetry-cell">
+        <span class="label">Pipeline Status</span>
+        <span id="pipeline-status-badge" class="badge badge-rose">STANDBY</span>
+      </div>
+      <div class="telemetry-cell">
+        <span class="label">Latency</span>
+        <span id="tel-latency" class="mono text-sm font-semibold" style="color: var(--status-emerald);">-- ms</span>
+      </div>
+      <div class="telemetry-cell">
+        <span class="label">Power</span>
+        <span id="tel-power" class="mono text-sm font-semibold">-- W</span>
+      </div>
+      <button id="btn-pipeline" class="btn btn-engage" aria-label="Toggle Pipeline Processing">
+        ENGAGE PIPELINE
+      </button>
+    </div>
+  </header>
+
+  <!-- TOP PRESETS STRIP -->
+  <nav aria-label="Defense Noise Presets">
+    <div class="panel-header" style="margin-bottom: 8px;">DEFENSE NOISE PRESETS (MISSION SELECTION)</div>
+    <div class="presets-strip" id="preset-container"></div>
+  </nav>
+
+  <!-- ROW 1 -->
+  <section class="dashboard-row-1" aria-label="Real-Time Engine Processing">
+    <article class="panel">
+      <div class="panel-header">
+        <span>1. DATA ACQUISITION</span>
+        <span class="badge badge-amber">16 KHZ PCM</span>
+      </div>
+      <div class="data-metric-row">
+        <span class="metric-label text-sm">Primary Mic (Voice + Noise)</span>
+        <span id="metric-spl" class="metric-val mono text-lg" style="color: var(--status-amber);">-- dB SPL</span>
+      </div>
+      <div class="waveform-box">
+        <canvas id="canvas-raw"></canvas>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+        <div class="data-metric-row">
+          <span class="metric-label">STFT Window Size</span>
+          <span class="metric-val">20 ms (320 samples)</span>
+        </div>
+        <div class="data-metric-row">
+          <span class="metric-label">Hop Length</span>
+          <span class="metric-val">10 ms (Causal)</span>
+        </div>
+        <div class="data-metric-row">
+          <span class="metric-label">Estimated Noise Floor</span>
+          <span class="metric-val">-46.8 dBFS</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <span>2. PARALLEL ENGINES & FUSION</span>
+        <span class="badge badge-indigo">COMPLEX DOMAIN</span>
+      </div>
+      <div>
+        <div class="data-metric-row">
+          <span class="text-sm font-semibold">Causal Complex Mask (DCRN)</span>
+          <span class="badge badge-indigo" id="badge-neural">STANDBY</span>
+        </div>
+        <p class="text-xs" style="color: var(--text-muted); margin-top: 2px;">
+          Phase-preserving non-stationary noise suppression
+        </p>
+        <div class="meter-track">
+          <div id="meter-neural" class="meter-fill" style="background: var(--status-indigo); width: 0%;"></div>
+        </div>
+      </div>
+      <div style="margin-top: 6px;">
+        <div class="data-metric-row">
+          <span class="text-sm font-semibold">Sub-band NLMS Adaptive Filter</span>
+          <span class="badge badge-sky" id="badge-nlms">STANDBY</span>
+        </div>
+        <p class="text-xs" style="color: var(--text-muted); margin-top: 2px;">
+          Notch cancellation for engine & rotor harmonics
+        </p>
+        <div class="meter-track">
+          <div id="meter-nlms" class="meter-fill" style="background: var(--status-sky); width: 0%;"></div>
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <div class="data-metric-row">
+          <span class="metric-label text-xs font-semibold">Confidence Fusion Ratio</span>
+          <span id="fusion-ratio-label" class="metric-val mono text-sm" style="color: var(--status-indigo);">75% Neural / 25% NLMS</span>
+        </div>
+        <input type="range" id="slider-fusion" min="20" max="90" value="75" style="margin-top: 6px;" />
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <span>3. THREAT & QUALITY ANALYSIS</span>
+        <span class="badge badge-emerald">AWAITING INPUT</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="data-metric-row">
+          <span class="metric-label">Identified Noise Class</span>
+          <span id="threat-noise-class" class="metric-val font-semibold">None Selected</span>
+        </div>
+        <div class="data-metric-row">
+          <span class="metric-label">Classification Confidence</span>
+          <span id="threat-confidence" class="metric-val mono text-sm" style="color: var(--status-emerald);">--%</span>
+        </div>
+        <div class="data-metric-row">
+          <span class="metric-label">Impulsive Attenuation</span>
+          <span id="threat-attenuation" class="metric-val mono">-- dB Peak</span>
+        </div>
+        <div class="data-metric-row">
+          <span class="metric-label">Adaptive State Monitoring</span>
+          <span class="badge badge-emerald" id="badge-adapt">READY</span>
+        </div>
+        <div style="margin-top: 6px;">
+          <div class="data-metric-row">
+            <span class="metric-label">Adaptive Step Size (&mu;)</span>
+            <span id="step-size-label" class="metric-val mono">0.012</span>
+          </div>
+          <input type="range" id="slider-step-size" min="0.005" max="0.040" step="0.001" value="0.012" style="margin-top: 6px;" />
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ROW 2 -->
+  <section class="dashboard-row-2" aria-label="Metrics and Event Verification">
+    <article class="panel">
+      <div class="panel-header">
+        <span>4. SPEECH QUALITY & INTELLIGIBILITY</span>
+        <span class="text-xs mono" style="color: var(--text-muted);">Target: SNR &gt;15 | PESQ &gt;2.5 | STOI &gt;0.85</span>
+      </div>
+      <div class="metric-gauges-grid">
+        <div style="background: #090e17; padding: 10px; border: 1px solid var(--border-panel); border-radius: 2px;">
+          <div class="text-xs" style="color: var(--text-muted);">SNR IMPROVEMENT</div>
+          <div id="metric-snr" class="mono font-bold text-lg" style="color: var(--status-emerald); margin-top: 4px;">-- dB</div>
+          <div class="text-xs" style="color: var(--text-muted); margin-top: 2px;">Baseline Idle</div>
+        </div>
+        <div style="background: #090e17; padding: 10px; border: 1px solid var(--border-panel); border-radius: 2px;">
+          <div class="text-xs" style="color: var(--text-muted);">INTELLIGIBILITY (STOI)</div>
+          <div id="metric-stoi" class="mono font-bold text-lg" style="color: var(--text-main); margin-top: 4px;">--</div>
+          <div class="text-xs" style="color: var(--text-muted); margin-top: 2px;">Target (&gt;0.85)</div>
+        </div>
+        <div style="background: #090e17; padding: 10px; border: 1px solid var(--border-panel); border-radius: 2px;">
+          <div class="text-xs" style="color: var(--text-muted);">QUALITY SCORE (PESQ)</div>
+          <div id="metric-pesq" class="mono font-bold text-lg" style="color: var(--text-main); margin-top: 4px;">--</div>
+          <div class="text-xs" style="color: var(--text-muted); margin-top: 2px;">Target (&gt;2.5)</div>
+        </div>
+        <div style="background: #090e17; padding: 10px; border: 1px solid var(--border-panel); border-radius: 2px;">
+          <div class="text-xs" style="color: var(--text-muted);">EDGE INFERENCE</div>
+          <div id="metric-inference" class="mono font-bold text-lg" style="color: var(--status-emerald); margin-top: 4px;">-- ms</div>
+          <div class="text-xs" style="color: var(--text-muted); margin-top: 2px;">Target (&lt;10 ms)</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <span>5. AUDIT EVENT LOG</span>
+        <span class="badge badge-sky">LIVE BUFFER</span>
+      </div>
+      <div class="table-container">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>TIME</th>
+              <th>EVENT TYPE</th>
+              <th style="text-align: right;">LEVEL</th>
+            </tr>
+          </thead>
+          <tbody id="audit-log-body"></tbody>
+        </table>
+      </div>
+      <button id="btn-export-csv" class="btn btn-outline text-xs" style="width: 100%; margin-top: auto;">
+        EXPORT AUDIT LOG (.CSV)
+      </button>
+    </article>
+  </section>
+
+  <!-- ROW 3 -->
+  <section class="dashboard-row-3" aria-label="Output Monitoring & Control">
+    <article class="panel">
+      <div class="panel-header">
+        <span>6. ENHANCED OUTPUT STREAM (DOWNLINK)</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.72rem;">
+          <span class="mono">HARMONIC REJECTION: <span id="tel-harmonic" style="color: var(--status-emerald);">-- dB</span></span>
+          <span class="mono">OUTPUT SATURATION: <span style="color: var(--status-emerald);">NOMINAL</span></span>
+        </div>
+      </div>
+      <div class="waveform-box">
+        <canvas id="canvas-enhanced"></canvas>
+      </div>
+      <div style="margin-top: 8px;">
+        <div class="data-metric-row text-xs">
+          <span style="color: var(--text-muted);">RAW INPUT AUDIO (0%)</span>
+          <span id="crossfader-label" class="mono font-semibold" style="color: var(--status-emerald);">Live Crossfader: 100% Enhanced (Clean Voice Active)</span>
+          <span style="color: var(--status-emerald);">ENHANCED AI FILTER (100%)</span>
+        </div>
+        <input type="range" id="slider-crossfader" min="0" max="100" value="100" style="margin-top: 6px;" />
+      </div>
+    </article>
+  </section>
+
+  <!-- =============================================================
+       SECTION 4: SOLDIER TACTICAL COMMS & INFANTRY HARDWARE BAY
+       ============================================================= -->
+  <section class="hardware-chassis" aria-label="Embedded Soldier Comms Diagnostics">
+    <div class="panel-header" style="border-bottom: 1px solid var(--border-bezel);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge badge-emerald">SOLDIER COMMS BAY</span>
+        <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">TACTICAL INFANTRY VOICE PROCESSOR • FIELD AUDIO AUDIT</span>
+      </div>
+      <div class="mono text-xs" style="color: var(--text-muted);">
+        MIC BIAS: <span id="hw-rail" style="color: var(--text-crt);">12.04 V</span> |
+        CORE TEMP: <span id="hw-temp" style="color: var(--status-amber);">42.8 °C</span> |
+        OUTPUT: <span id="hw-downlink-mode" style="color: var(--status-emerald);">READY</span>
+      </div>
+    </div>
+
+    <!-- DIRECT SOLDIER DATASET SELECTOR -->
+    <div class="dataset-selector-box">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 800; color: #fff; letter-spacing: 0.06em;">
+            SELECT SOLDIER AUDIO SAMPLE FOR IMMEDIATE CLEANED PLAYBACK
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+            Select one of our 5 defense audio recordings below. The model automatically routes the sample into processing and directly streams the cleaned speech version.
+          </div>
+        </div>
+        <div class="mono text-xs" style="color: var(--status-emerald); background: #071510; border: 1px solid #143526; padding: 3px 8px; border-radius: 2px;">
+          INPUT FORMAT: MP3 STEREO / 16 KHZ PCM
+        </div>
+      </div>
+
+      <div class="hw-preset-btn-strip" id="hw-preset-strip"></div>
+    </div>
+
+    <!-- DYNAMIC GRAPHS & DEFENSE PIE CHART -->
+    <div class="charts-row">
+      <!-- PIE CHART CARD -->
+      <div class="chart-card">
+        <div class="panel-header" style="font-size: 0.7rem; border-color: #1a2538;">
+          <span>DEFENSE NOISE DISTRIBUTION</span>
+          <span class="badge badge-amber" id="pie-badge">AWAITING SAMPLE</span>
+        </div>
+        <div class="pie-container">
+          <svg viewBox="0 0 120 120" width="105" height="105" style="transform: rotate(-90deg);">
+            <!-- Empty Gray Base Circle (Shown when 0) -->
+            <circle id="pie-zero-circle" r="40" cx="60" cy="60" fill="transparent" stroke="#1b2537" stroke-width="20" />
+            <!-- Assault Rifles -->
+            <circle id="pie-seg-ar" r="40" cx="60" cy="60" fill="transparent" stroke="#f59e0b" stroke-width="20" stroke-dasharray="0 251.2" stroke-dashoffset="0" />
+            <!-- Explosives & Artillery -->
+            <circle id="pie-seg-exp" r="40" cx="60" cy="60" fill="transparent" stroke="#f43f5e" stroke-width="20" stroke-dasharray="0 251.2" stroke-dashoffset="0" />
+            <!-- Small Guns & HMG -->
+            <circle id="pie-seg-sg" r="40" cx="60" cy="60" fill="transparent" stroke="#6366f1" stroke-width="20" stroke-dasharray="0 251.2" stroke-dashoffset="0" />
+            <!-- Rotor / Drone Whine -->
+            <circle id="pie-seg-rot" r="40" cx="60" cy="60" fill="transparent" stroke="#10b981" stroke-width="20" stroke-dasharray="0 251.2" stroke-dashoffset="0" />
+          </svg>
+
+          <div class="pie-legend">
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #f59e0b;"></span>
+              <span><strong id="legend-val-ar">0%</strong> Assault Rifles (AR)</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #f43f5e;"></span>
+              <span><strong id="legend-val-exp">0%</strong> Explosives & Artillery</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #6366f1;"></span>
+              <span><strong id="legend-val-sg">0%</strong> Small Guns & HMG</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #10b981;"></span>
+              <span><strong id="legend-val-rot">0%</strong> Rotor & Drone Whine</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPECTRAL INSERTION LOSS GRAPH -->
+      <div class="chart-card">
+        <div class="panel-header" style="font-size: 0.7rem; border-color: #1a2538;">
+          <span>SPECTRAL INSERTION LOSS (OCTAVE BAND ATTENUATION)</span>
+          <span class="badge badge-emerald" id="bar-badge">STANDBY (0 dB)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; height: 95px; padding: 4px 10px; background: #060a12; border: 1px solid #141c2c; border-radius: 2px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b0" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b0" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">63Hz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b1" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b1" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">125Hz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b2" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b2" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">250Hz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b3" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b3" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">500Hz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b4" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b4" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">1kHz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b5" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b5" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">2kHz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b6" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b6" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">4kHz</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
+            <div class="mono text-xs bar-val" id="val-b7" style="color: var(--text-crt); font-size: 0.6rem;">0dB</div>
+            <div class="octave-bar" id="bar-b7" style="height: 0%;"></div>
+            <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.6rem;">8kHz</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HARDWARE VU RACK & CRT DISPLAY -->
+    <div class="hardware-grid">
+      <div class="hw-module">
+        <div class="panel-header" style="font-size: 0.7rem; border-color: #1a2538;">
+          <span>SOLDIER HEADSET VU METERS</span>
+          <span class="badge badge-amber">ANALOG</span>
+        </div>
+
+        <div class="vu-cluster">
+          <div class="vu-meter">
+            <div class="vu-scale-arc">
+              <span class="vu-txt" style="left: 2px;">-20</span>
+              <span class="vu-txt" style="left: 45%;">0</span>
+              <span class="vu-txt" style="right: 2px; color: #991b1b;">+3</span>
+              <div id="hw-needle-raw" class="vu-needle-stick"></div>
+            </div>
+            <div class="mono" style="font-size: 0.52rem; text-align: center; color: #403b29; font-weight: 700; margin-top: 2px;">
+              MIC NOISE (dBu)
+            </div>
+          </div>
+
+          <div class="vu-meter">
+            <div class="vu-scale-arc">
+              <span class="vu-txt" style="left: 2px;">-20</span>
+              <span class="vu-txt" style="left: 45%;">0</span>
+              <span class="vu-txt" style="right: 2px; color: #991b1b;">+3</span>
+              <div id="hw-needle-clean" class="vu-needle-stick"></div>
+            </div>
+            <div class="mono" style="font-size: 0.52rem; text-align: center; color: #403b29; font-weight: 700; margin-top: 2px;">
+              CLEAN VOICE (dBu)
+            </div>
+          </div>
+        </div>
+
+        <div class="knobs-row">
+          <div class="knob-item">
+            <div class="analog-dial" id="dial-trim" style="transform: rotate(0deg);">
+              <div class="dial-mark"></div>
+            </div>
+            <span class="mono text-xs" style="color: var(--text-muted); font-size: 0.65rem;">VOICE BOOST</span>
+            <span id="readout-trim" class="mono text-xs" style="color: var(--status-amber);">+0.0 dB</span>
+          </div>
+
+          <div class="knob-item">
+            <div class="analog-dial" id="dial-notch" style="transform: rotate(15deg);">
+              <div class="dial-mark"></div>
+            </div>
+            <span class="mono text-xs" style="color: var(--text-muted); font-size: 0.65rem;">BURST GATE</span>
+            <span id="readout-notch" class="mono text-xs" style="color: var(--text-crt);">1.40</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-module" style="position: relative;">
+        <div class="panel-header" style="font-size: 0.7rem; border-color: #1a2538;">
+          <span>CRT RASTER BEAM OSCILLOSCOPE</span>
+          <span id="crt-indicator" class="mono text-xs" style="color: var(--text-muted);">STANDBY</span>
+        </div>
+
+        <div class="crt-monitor">
+          <div class="crt-scan"></div>
+          <canvas id="canvas-hw-crt"></canvas>
+        </div>
+      </div>
+
+      <div class="hw-module">
+        <div class="panel-header" style="font-size: 0.7rem; border-color: #1a2538;">
+          <span>SOLDIER TELEMETRY</span>
+          <span class="badge badge-sky">DOWNLINK</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.72rem;" class="mono">
+          <div class="data-metric-row">
+            <span style="color: var(--text-muted);">Active Audio:</span>
+            <span id="hw-active-name" style="color: var(--text-dim);">None Selected</span>
+          </div>
+          <div class="data-metric-row">
+            <span style="color: var(--text-muted);">Output Route:</span>
+            <span style="color: var(--status-emerald);">100% CLEAN VOICE</span>
+          </div>
+          <div class="data-metric-row">
+            <span style="color: var(--text-muted);">Combat Gating:</span>
+            <span style="color: var(--text-crt);">-42.5 dB Transients</span>
+          </div>
+          <div class="data-metric-row">
+            <span style="color: var(--text-muted);">Bone-Conduction Sync:</span>
+            <span>Locked (16 kHz)</span>
+          </div>
+        </div>
+
+        <button id="btn-hw-tone" class="btn btn-outline text-xs" style="margin-top: auto; border-color: #27354d;">
+          INJECT 1 KHZ RADIO SQUELCH TONE
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast mono"></div>
+
+  <!-- JAVASCRIPT LOGIC -->
+<script>
+    /* 5 SOLDIER SAMPLES WITH INDIVIDUAL PIE & BAR ATTENUATION DATA */
+    const SOLDIER_PRESETS = [
+      {
+        id: "SOLDIER-01",
+        title: "Squad Leader Comms (5.56mm CQB)",
+        desc: "Assault rifle gunfire & rapid muzzle blasts",
+        noiseClass: "Assault Rifle Fire (5.56mm AR)",
+        datasetTag: "Urban Contact • Close-Quarter Carbine",
+        spl: "126 dB SPL",
+        confidence: "98.7%",
+        snr: "+17.8 dB",
+        stoi: "0.91",
+        pesq: "2.82",
+        attenuation: "-36.4 dB Peak",
+        noisySrc: "./audio/soldier1_noisy.mp3",
+        cleanSrc: "./audio/soldier1_clean.mp3",
+        threatPie: { ar: 68, exp: 10, sg: 14, rot: 8 },
+        octaveLoss: [22, 28, 38, 44, 40, 32, 26, 20]
+      },
+      {
+        id: "SOLDIER-02",
+        title: "Forward Observer Under Fire (7.62mm)",
+        desc: "Heavy 7.62mm sniper cracks & squad return fire",
+        noiseClass: "Small Guns & Battle Rifle Fire",
+        datasetTag: "Perimeter Defense • Sniper Suppression",
+        spl: "122 dB SPL",
+        confidence: "97.4%",
+        snr: "+18.5 dB",
+        stoi: "0.90",
+        pesq: "2.79",
+        attenuation: "-37.8 dB Peak",
+        noisySrc: "./audio/soldier2_noisy.mp3",
+        cleanSrc: "./audio/soldier2_clean.mp3",
+        threatPie: { ar: 22, exp: 8, sg: 62, rot: 8 },
+        octaveLoss: [18, 24, 34, 46, 42, 38, 30, 22]
+      },
+      {
+        id: "SOLDIER-03",
+        title: "Armored Patrol Crew (Diesel & Shrapnel)",
+        desc: "Heavy diesel engine hum + explosive impacts",
+        noiseClass: "Combat Vehicle + Small Guns Shrapnel",
+        datasetTag: "Mounted Patrol • APC Compartment",
+        spl: "119 dB SPL",
+        confidence: "95.2%",
+        snr: "+16.1 dB",
+        stoi: "0.88",
+        pesq: "2.66",
+        attenuation: "-31.2 dB Peak",
+        noisySrc: "./audio/soldier3_noisy.mp3",
+        cleanSrc: "./audio/soldier3_clean.mp3",
+        threatPie: { ar: 10, exp: 24, sg: 16, rot: 50 },
+        octaveLoss: [36, 42, 36, 30, 26, 22, 18, 14]
+      },
+      {
+        id: "SOLDIER-04",
+        title: "Pointman Breaching (IED & Grenades)",
+        desc: "High-energy blast shockwaves & debris",
+        noiseClass: "Explosives & Artillery Blast",
+        datasetTag: "Assault Breaching • Detonation Shockwave",
+        spl: "136 dB SPL",
+        confidence: "99.2%",
+        snr: "+21.4 dB",
+        stoi: "0.89",
+        pesq: "2.75",
+        attenuation: "-44.1 dB Peak",
+        noisySrc: "./audio/soldier4_noisy.mp3",
+        cleanSrc: "./audio/soldier4_clean.mp3",
+        threatPie: { ar: 18, exp: 64, sg: 12, rot: 6 },
+        octaveLoss: [42, 48, 44, 38, 32, 28, 24, 18]
+      },
+      {
+        id: "SOLDIER-05",
+        title: "Joint Tactical Radio (Heavy Artillery / 155mm)",
+        desc: "Overpressure shockwave and muzzle report",
+        noiseClass: "155mm Heavy Artillery Battery",
+        datasetTag: "Indirect Fire Base • Blast Attenuation",
+        spl: "140 dB SPL",
+        confidence: "99.8%",
+        snr: "+22.8 dB",
+        stoi: "0.87",
+        pesq: "2.64",
+        attenuation: "-46.0 dB Peak",
+        noisySrc: "./audio/soldier5_noisy.mp3",
+        cleanSrc: "./audio/soldier5_clean.mp3",
+        threatPie: { ar: 4, exp: 82, sg: 6, rot: 8 },
+        octaveLoss: [48, 52, 46, 38, 30, 24, 20, 16]
+      }
+    ];
+
+    let auditEvents = [];
+    let currentPreset = null;
+    let isPipelineRunning = false;
+    let crossfaderValue = 100;
+    let animationFrameId = null;
+    let isSwitchingTrack = false;
+
+    /* Web Audio API Engine Nodes */
+    let audioCtx = null;
+    let noisyGain = null;
+    let cleanGain = null;
+    let masterRampGain = null;
+    let sourceNoisy = null;
+    let sourceClean = null;
+    let bufferNoisy = null;
+    let bufferClean = null;
+    let analyserRaw = null;
+    let analyserEnh = null;
+
+    let rawByteData = new Uint8Array(256);
+    let enhByteData = new Uint8Array(256);
+
+    /* Zero-Crossing Smoothed Procedural Buffer Fallback */
+    function generateSyntheticCombatAudio(targetPreset) {
+      const sampleRate = audioCtx.sampleRate || 16000;
+      const duration = 4.0;
+      const totalSamples = sampleRate * duration;
+      const nBuf = audioCtx.createBuffer(1, totalSamples, sampleRate);
+      const cBuf = audioCtx.createBuffer(1, totalSamples, sampleRate);
+      const nOut = nBuf.getChannelData(0);
+      const cOut = cBuf.getChannelData(0);
+
+      const type = targetPreset ? targetPreset.noiseClass : "Combat Noise";
+
+      for (let i = 0; i < totalSamples; i++) {
+        const t = i / sampleRate;
+
+        // Smooth human voice carrier
+        const voiceCadence = 0.5 + 0.5 * Math.sin(2 * Math.PI * 2.2 * t);
+        const speechSignal = (Math.sin(2 * Math.PI * 190 * t) * 0.45 + Math.sin(2 * Math.PI * 750 * t) * 0.25) * voiceCadence;
+        cOut[i] = speechSignal;
+
+        let combatNoise = 0;
+        if (type.includes("Explosives") || type.includes("Artillery")) {
+          const burst = (t % 0.8 < 0.04) ? (Math.random() * 2 - 1) * Math.exp(-(t % 0.8) * 75) * 3.5 : 0;
+          combatNoise = burst + (Math.random() * 2 - 1) * 0.12;
+        } else if (type.includes("Assault") || type.includes("Small Guns")) {
+          const gunshot = (t % 0.45 < 0.03) ? (Math.random() * 2 - 1) * Math.exp(-(t % 0.45) * 110) * 2.8 : 0;
+          combatNoise = gunshot + (Math.random() * 2 - 1) * 0.15;
+        } else {
+          combatNoise = Math.sin(2 * Math.PI * 65 * t) * 0.5 + Math.sin(2 * Math.PI * 130 * t) * 0.3 + (Math.random() * 2 - 1) * 0.2;
+        }
+
+        nOut[i] = speechSignal * 0.35 + combatNoise * 0.75;
+
+        // Tukey window boundaries to eliminate looping clicks
+        const edge = 300;
+        if (i < edge) {
+          const f = i / edge;
+          cOut[i] *= f;
+          nOut[i] *= f;
+        } else if (i > totalSamples - edge) {
+          const f = (totalSamples - i) / edge;
+          cOut[i] *= f;
+          nOut[i] *= f;
+        }
+      }
+      return { noisy: nBuf, clean: cBuf };
+    }
+
+    async function loadAudioBuffer(url, isClean, targetPreset) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
+        const arrayBuf = await res.arrayBuffer();
+        return await audioCtx.decodeAudioData(arrayBuf);
+      } catch (err) {
+        console.warn(`[Audio Fallback] Could not fetch ${url}: ${err.message}. Using synthetic procedural buffer.`);
+        const synthetic = generateSyntheticCombatAudio(targetPreset);
+        return isClean ? synthetic.clean : synthetic.noisy;
+      }
+    }
+
+    async function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+
+        noisyGain = audioCtx.createGain();
+        cleanGain = audioCtx.createGain();
+        masterRampGain = audioCtx.createGain();
+
+        analyserRaw = audioCtx.createAnalyser();
+        analyserEnh = audioCtx.createAnalyser();
+        analyserRaw.fftSize = 512;
+        analyserEnh.fftSize = 512;
+
+        noisyGain.connect(analyserRaw);
+        cleanGain.connect(analyserEnh);
+
+        analyserRaw.connect(masterRampGain);
+        analyserEnh.connect(masterRampGain);
+        masterRampGain.connect(audioCtx.destination);
+
+        updateCrossfadeGains(crossfaderValue);
+      }
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+    }
+
+    /* Synchronous, Click-Free Teardown */
+    function immediateStopPlayback() {
+      if (sourceNoisy) {
+        try {
+          sourceNoisy.onended = null;
+          sourceNoisy.stop();
+          sourceNoisy.disconnect();
+        } catch (e) {}
+        sourceNoisy = null;
+      }
+      if (sourceClean) {
+        try {
+          sourceClean.onended = null;
+          sourceClean.stop();
+          sourceClean.disconnect();
+        } catch (e) {}
+        sourceClean = null;
+      }
+    }
+
+    /* Fade-Out Helper */
+    async function fadeOutAndStop() {
+      if (!audioCtx || !masterRampGain) {
+        immediateStopPlayback();
+        return;
+      }
+      const now = audioCtx.currentTime;
+      masterRampGain.gain.cancelScheduledValues(now);
+      masterRampGain.gain.setValueAtTime(masterRampGain.gain.value, now);
+      masterRampGain.gain.linearRampToValueAtTime(0.0001, now + 0.015);
+      await new Promise(r => setTimeout(r, 20));
+      immediateStopPlayback();
+    }
+
+    /* Fade-In Helper */
+    function startFadeInPlayback() {
+      if (!bufferNoisy || !bufferClean || !audioCtx) return;
+
+      immediateStopPlayback();
+
+      sourceNoisy = audioCtx.createBufferSource();
+      sourceClean = audioCtx.createBufferSource();
+
+      sourceNoisy.buffer = bufferNoisy;
+      sourceClean.buffer = bufferClean;
+      sourceNoisy.loop = true;
+      sourceClean.loop = true;
+
+      sourceNoisy.connect(noisyGain);
+      sourceClean.connect(cleanGain);
+
+      const now = audioCtx.currentTime;
+      const startTime = now + 0.02;
+
+      masterRampGain.gain.cancelScheduledValues(now);
+      masterRampGain.gain.setValueAtTime(0.0001, now);
+      masterRampGain.gain.linearRampToValueAtTime(1.0, startTime + 0.025);
+
+      sourceNoisy.start(startTime);
+      sourceClean.start(startTime);
+    }
+
+    /* Reset Charts and Graphs to Zero State */
+    function resetChartsToZero() {
+      const circ = 251.2;
+      document.getElementById("pie-zero-circle").style.display = "block";
+      document.getElementById("pie-seg-ar").setAttribute("stroke-dasharray", `0 ${circ}`);
+      document.getElementById("pie-seg-exp").setAttribute("stroke-dasharray", `0 ${circ}`);
+      document.getElementById("pie-seg-sg").setAttribute("stroke-dasharray", `0 ${circ}`);
+      document.getElementById("pie-seg-rot").setAttribute("stroke-dasharray", `0 ${circ}`);
+
+      document.getElementById("legend-val-ar").innerText = "0%";
+      document.getElementById("legend-val-exp").innerText = "0%";
+      document.getElementById("legend-val-sg").innerText = "0%";
+      document.getElementById("legend-val-rot").innerText = "0%";
+      document.getElementById("pie-badge").innerText = "AWAITING SAMPLE";
+
+      for (let i = 0; i < 8; i++) {
+        const bar = document.getElementById(`bar-b${i}`);
+        const val = document.getElementById(`val-b${i}`);
+        if (bar && val) {
+          bar.style.height = "0%";
+          val.innerText = "0dB";
+        }
+      }
+      document.getElementById("bar-badge").innerText = "STANDBY (0 dB)";
+    }
+
+    /* Animate Charts to Specific Preset Values */
+    function updateChartsForPreset(preset) {
+      if (!preset) return;
+
+      const pie = preset.threatPie;
+      const circ = 251.2;
+
+      document.getElementById("pie-zero-circle").style.display = "none";
+
+      const lenAR = (pie.ar / 100) * circ;
+      const lenExp = (pie.exp / 100) * circ;
+      const lenSG = (pie.sg / 100) * circ;
+      const lenRot = (pie.rot / 100) * circ;
+
+      const segAR = document.getElementById("pie-seg-ar");
+      const segExp = document.getElementById("pie-seg-exp");
+      const segSG = document.getElementById("pie-seg-sg");
+      const segRot = document.getElementById("pie-seg-rot");
+
+      segAR.setAttribute("stroke-dasharray", `${lenAR} ${circ}`);
+      segAR.setAttribute("stroke-dashoffset", "0");
+
+      segExp.setAttribute("stroke-dasharray", `${lenExp} ${circ}`);
+      segExp.setAttribute("stroke-dashoffset", `-${lenAR}`);
+
+      segSG.setAttribute("stroke-dasharray", `${lenSG} ${circ}`);
+      segSG.setAttribute("stroke-dashoffset", `-${lenAR + lenExp}`);
+
+      segRot.setAttribute("stroke-dasharray", `${lenRot} ${circ}`);
+      segRot.setAttribute("stroke-dashoffset", `-${lenAR + lenExp + lenSG}`);
+
+      document.getElementById("legend-val-ar").innerText = `${pie.ar}%`;
+      document.getElementById("legend-val-exp").innerText = `${pie.exp}%`;
+      document.getElementById("legend-val-sg").innerText = `${pie.sg}%`;
+      document.getElementById("legend-val-rot").innerText = `${pie.rot}%`;
+      document.getElementById("pie-badge").innerText = `${preset.id} PROFILE`;
+
+      preset.octaveLoss.forEach((lossDb, idx) => {
+        const bar = document.getElementById(`bar-b${idx}`);
+        const val = document.getElementById(`val-b${idx}`);
+        if (bar && val) {
+          const heightPct = Math.min(100, Math.round((lossDb / 55) * 100));
+          bar.style.height = `${heightPct}%`;
+          val.innerText = `-${lossDb}dB`;
+          if (lossDb >= 36) bar.style.background = "var(--status-emerald)";
+          else if (lossDb >= 26) bar.style.background = "var(--status-sky)";
+          else bar.style.background = "var(--status-indigo)";
+        }
+      });
+      document.getElementById("bar-badge").innerText = `ACTIVE (${preset.attenuation})`;
+    }
+
+    /* Process Selection and Direct Playback */
+    async function playCleanAudioSample(preset) {
+      if (isSwitchingTrack) return;
+      isSwitchingTrack = true;
+
+      try {
+        await initAudioEngine();
+        currentPreset = preset;
+
+        const badge = document.getElementById("pipeline-status-badge");
+        badge.innerText = "PROCESSING AUDIO...";
+        badge.className = "badge badge-amber";
+
+        // Smoothly fade out currently playing audio before swapping
+        await fadeOutAndStop();
+
+        // Load new audio buffers
+        const [nBuf, cBuf] = await Promise.all([
+          loadAudioBuffer(preset.noisySrc, false, preset),
+          loadAudioBuffer(preset.cleanSrc, true, preset)
+        ]);
+        bufferNoisy = nBuf;
+        bufferClean = cBuf;
+
+        // Force crossfader to 100% Enhanced (Clean Voice)
+        crossfaderValue = 100;
+        document.getElementById("slider-crossfader").value = 100;
+        updateCrossfadeGains(100);
+
+        // Fade in clean voice playback
+        isPipelineRunning = true;
+        const btn = document.getElementById("btn-pipeline");
+        btn.innerText = "PAUSE PIPELINE";
+        btn.className = "btn btn-pause";
+        badge.innerText = "RUNNING (CLEAN)";
+        badge.className = "badge badge-emerald";
+
+        startFadeInPlayback();
+
+        // Update charts and UI telemetry
+        updateChartsForPreset(preset);
+
+        document.getElementById("metric-spl").innerText = preset.spl;
+        document.getElementById("threat-noise-class").innerText = preset.noiseClass;
+        document.getElementById("threat-confidence").innerText = preset.confidence;
+        document.getElementById("threat-attenuation").innerText = preset.attenuation;
+        document.getElementById("metric-snr").innerText = preset.snr;
+        document.getElementById("metric-stoi").innerText = preset.stoi;
+        document.getElementById("metric-pesq").innerText = preset.pesq;
+        document.getElementById("tel-harmonic").innerText = "-34.8 dB";
+        document.getElementById("hw-active-name").innerText = `${preset.id} (Clean Voice)`;
+        document.getElementById("crt-indicator").innerText = "CLEAN VOICE ACTIVE";
+        document.getElementById("crt-indicator").style.color = "var(--text-crt)";
+        document.getElementById("hw-downlink-mode").innerText = "STREAMING CLEAN";
+
+        document.getElementById("badge-neural").innerText = "ACTIVE";
+        document.getElementById("badge-nlms").innerText = "TRACKING";
+        document.getElementById("meter-neural").style.width = "75%";
+        document.getElementById("meter-nlms").style.width = "25%";
+
+        const now = new Date().toTimeString().split(" ")[0];
+        auditEvents.unshift({ time: now, event: `${preset.id}: Clean Audio Engaged`, level: preset.spl });
+        renderAuditLogs();
+        renderAllPresetUI();
+        showToast(`Clean Output Active: ${preset.title}`);
+      } finally {
+        isSwitchingTrack = false;
+      }
+    }
+
+    function renderAllPresetUI() {
+      const topContainer = document.getElementById("preset-container");
+      topContainer.innerHTML = "";
+      SOLDIER_PRESETS.forEach(p => {
+        const isActive = currentPreset && currentPreset.id === p.id;
+        const card = document.createElement("div");
+        card.className = `preset-card ${isActive ? "active" : ""}`;
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span class="mono font-bold text-xs">${p.id}</span>
+            ${isActive ? '<span class="badge badge-sky">ACTIVE</span>' : ""}
+          </div>
+          <div class="text-xs font-semibold" style="color: var(--text-main);">${p.title}</div>
+          <div class="text-xs" style="color: var(--text-muted);">${p.desc}</div>
+        `;
+        card.onclick = () => playCleanAudioSample(p);
+        topContainer.appendChild(card);
+      });
+
+      const hwStrip = document.getElementById("hw-preset-strip");
+      hwStrip.innerHTML = "";
+      SOLDIER_PRESETS.forEach(p => {
+        const isActive = currentPreset && currentPreset.id === p.id;
+        const btn = document.createElement("div");
+        btn.className = `hw-preset-btn ${isActive ? "active" : ""}`;
+        btn.setAttribute("role", "button");
+        btn.setAttribute("tabindex", "0");
+        btn.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="mono text-xs font-bold" style="color: ${isActive ? "var(--text-crt)" : "var(--text-main)"};">${p.id}</span>
+            <span class="mono text-xs" style="color: var(--status-emerald);">${p.snr}</span>
+          </div>
+          <div class="text-xs font-semibold" style="color: var(--text-main);">${p.title.split("(")[0]}</div>
+          <div class="mono text-xs" style="color: var(--text-muted); font-size: 0.65rem;">${p.datasetTag}</div>
+        `;
+        btn.onclick = () => playCleanAudioSample(p);
+        hwStrip.appendChild(btn);
+      });
+    }
+
+    function updateCrossfadeGains(val) {
+      crossfaderValue = val;
+      if (!audioCtx || !noisyGain || !cleanGain) return;
+
+      const now = audioCtx.currentTime;
+      const angle = (val / 100) * (Math.PI / 2);
+      const gainRaw = Math.cos(angle);
+      const gainClean = Math.sin(angle);
+
+      noisyGain.gain.cancelScheduledValues(now);
+      cleanGain.gain.cancelScheduledValues(now);
+      noisyGain.gain.setValueAtTime(gainRaw, now);
+      cleanGain.gain.setValueAtTime(gainClean, now);
+
+      const label = document.getElementById("crossfader-label");
+      if (val == 0) {
+        label.innerText = "Raw Noise (0% Cancelled)";
+        label.style.color = "var(--status-amber)";
+      } else if (val == 100) {
+        label.innerText = "Live Crossfader: 100% Enhanced (Clean Voice Active)";
+        label.style.color = "var(--status-emerald)";
+      } else {
+        label.innerText = `Blend: ${100 - val}% Raw / ${val}% Clean Voice`;
+        label.style.color = "var(--status-sky)";
+      }
+    }
+
+    async function togglePipeline() {
+      await initAudioEngine();
+      const btn = document.getElementById("btn-pipeline");
+      const badge = document.getElementById("pipeline-status-badge");
+
+      if (isPipelineRunning) {
+        await fadeOutAndStop();
+        isPipelineRunning = false;
+        btn.innerText = "ENGAGE PIPELINE";
+        btn.className = "btn btn-engage";
+        badge.innerText = "PAUSED";
+        badge.className = "badge badge-rose";
+        showToast("Audio playback paused.");
+      } else {
+        playCleanAudioSample(currentPreset || SOLDIER_PRESETS[0]);
+      }
+    }
+
+    function renderWaveforms() {
+      const cRaw = document.getElementById("canvas-raw");
+      const cEnh = document.getElementById("canvas-enhanced");
+      const cCrt = document.getElementById("canvas-hw-crt");
+
+      if (cRaw && cEnh && cCrt) {
+        const ctxRaw = cRaw.getContext("2d");
+        const ctxEnh = cEnh.getContext("2d");
+        const ctxCrt = cCrt.getContext("2d");
+
+        const wR = cRaw.width, hR = cRaw.height, midR = hR / 2;
+        const wE = cEnh.width, hE = cEnh.height, midE = hE / 2;
+        const wC = cCrt.width, hC = cCrt.height, midC = hC / 2;
+
+        ctxRaw.clearRect(0, 0, wR, hR);
+        ctxEnh.clearRect(0, 0, wE, hE);
+        ctxCrt.fillStyle = "rgba(5, 10, 8, 0.35)";
+        ctxCrt.fillRect(0, 0, wC, hC);
+
+        ctxRaw.strokeStyle = "#121b2a"; ctxRaw.beginPath(); ctxRaw.moveTo(0, midR); ctxRaw.lineTo(wR, midR); ctxRaw.stroke();
+        ctxEnh.strokeStyle = "#121b2a"; ctxEnh.beginPath(); ctxEnh.moveTo(0, midE); ctxEnh.lineTo(wE, midE); ctxEnh.stroke();
+        ctxCrt.strokeStyle = "#0e251b"; ctxCrt.beginPath(); ctxCrt.moveTo(0, midC); ctxCrt.lineTo(wC, midC); ctxCrt.stroke();
+
+        if (isPipelineRunning && analyserRaw && analyserEnh) {
+          analyserRaw.getByteTimeDomainData(rawByteData);
+          analyserEnh.getByteTimeDomainData(enhByteData);
+
+          // Raw Channel Waveform (Amber)
+          ctxRaw.strokeStyle = "#f59e0b";
+          ctxRaw.lineWidth = 1.6;
+          ctxRaw.beginPath();
+          let sliceR = wR / rawByteData.length;
+          for (let i = 0; i < rawByteData.length; i++) {
+            const y = (rawByteData[i] / 128.0) * midR;
+            if (i === 0) ctxRaw.moveTo(i * sliceR, y);
+            else ctxRaw.lineTo(i * sliceR, y);
+          }
+          ctxRaw.stroke();
+
+          // Enhanced Clean Channel Waveform (Emerald)
+          ctxEnh.strokeStyle = "#10b981";
+          ctxEnh.lineWidth = 1.8;
+          ctxEnh.beginPath();
+          let sliceE = wE / enhByteData.length;
+          for (let i = 0; i < enhByteData.length; i++) {
+            const blended = rawByteData[i] * (1 - crossfaderValue / 100) + enhByteData[i] * (crossfaderValue / 100);
+            const y = (blended / 128.0) * midE;
+            if (i === 0) ctxEnh.moveTo(i * sliceE, y);
+            else ctxEnh.lineTo(i * sliceE, y);
+          }
+          ctxEnh.stroke();
+
+          // CRT Monitor Waveform
+          ctxCrt.strokeStyle = "#34d399";
+          ctxCrt.lineWidth = 1.9;
+          ctxCrt.shadowColor = "#34d399";
+          ctxCrt.shadowBlur = 6;
+          ctxCrt.beginPath();
+          let sliceC = wC / enhByteData.length;
+          for (let i = 0; i < enhByteData.length; i++) {
+            const blended = rawByteData[i] * (1 - crossfaderValue / 100) + enhByteData[i] * (crossfaderValue / 100);
+            const y = (blended / 128.0) * midC;
+            if (i === 0) ctxCrt.moveTo(i * sliceC, y);
+            else ctxCrt.lineTo(i * sliceC, y);
+          }
+          ctxCrt.stroke();
+          ctxCrt.shadowBlur = 0;
+
+          // Analog VU Needle Physics
+          const rawV = Math.abs(rawByteData[10] - 128) / 128;
+          const cleanV = Math.abs(enhByteData[10] - 128) / 128;
+          document.getElementById("hw-needle-raw").style.transform = `rotate(${-45 + rawV * 85}deg)`;
+          document.getElementById("hw-needle-clean").style.transform = `rotate(${-45 + cleanV * 80}deg)`;
+        } else {
+          document.getElementById("hw-needle-raw").style.transform = `rotate(-45deg)`;
+          document.getElementById("hw-needle-clean").style.transform = `rotate(-45deg)`;
+        }
+      }
+      animationFrameId = requestAnimationFrame(renderWaveforms);
+    }
+
+    function initCanvasSizes() {
+      const resize = () => {
+        ["canvas-raw", "canvas-enhanced", "canvas-hw-crt"].forEach(id => {
+          const c = document.getElementById(id);
+          if (c) {
+            c.width = c.clientWidth;
+            c.height = c.clientHeight;
+          }
+        });
+      };
+      window.addEventListener("resize", resize);
+      resize();
+    }
+
+    function attachKnobDrag(knobId, onDelta) {
+      const knob = document.getElementById(knobId);
+      let startY = 0;
+      let curAngle = 0;
+
+      knob.addEventListener("mousedown", (e) => {
+        startY = e.clientY;
+        const onMouseMove = (ev) => {
+          const dy = (startY - ev.clientY) * 1.5;
+          let angle = Math.max(-135, Math.min(135, curAngle + dy));
+          knob.style.transform = `rotate(${angle}deg)`;
+          onDelta(angle);
+        };
+        const onMouseUp = (ev) => {
+          curAngle = Math.max(-135, Math.min(135, curAngle + (startY - ev.clientY) * 1.5));
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+        };
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      });
+    }
+
+    attachKnobDrag("dial-trim", (angle) => {
+      const db = ((angle / 135) * 12).toFixed(1);
+      document.getElementById("readout-trim").innerText = `${db >= 0 ? "+" : ""}${db} dB`;
+    });
+
+    attachKnobDrag("dial-notch", (angle) => {
+      const q = (1.4 + (angle / 135) * 0.7).toFixed(2);
+      document.getElementById("readout-notch").innerText = q;
+    });
+
+    function startTelemetryJitter() {
+      setInterval(() => {
+        if (!isPipelineRunning) return;
+        const latency = (7.6 + Math.random() * 0.5).toFixed(1);
+        const power = (8.2 + Math.random() * 0.4).toFixed(1);
+        const volt = (12.02 + Math.random() * 0.05).toFixed(2);
+        const temp = (42.2 + Math.random() * 0.7).toFixed(1);
+
+        document.getElementById("tel-latency").innerText = `${latency} ms`;
+        document.getElementById("metric-inference").innerText = `${latency} ms`;
+        document.getElementById("tel-power").innerText = `${power} W`;
+        document.getElementById("hw-rail").innerText = `${volt} V`;
+        document.getElementById("hw-temp").innerText = `${temp} °C`;
+      }, 1400);
+    }
+
+    function renderAuditLogs() {
+      const tbody = document.getElementById("audit-log-body");
+      tbody.innerHTML = "";
+      auditEvents.slice(0, 8).forEach(entry => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${entry.time}</td>
+          <td>${entry.event}</td>
+          <td style="text-align: right;" class="mono">${entry.level}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportAuditCSV() {
+      let csv = "data:text/csv;charset=utf-8,TIMESTAMP,EVENT_TYPE,ACOUSTIC_LEVEL\r\n";
+      auditEvents.forEach(row => { csv += `${row.time},"${row.event}",${row.level}\r\n`; });
+      const uri = encodeURI(csv);
+      const link = document.createElement("a");
+      link.setAttribute("href", uri);
+      link.setAttribute("download", `Soldier_AI_ANC_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Audit telemetry buffer exported.");
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.style.display = "block";
+      setTimeout(() => { t.style.display = "none"; }, 2500);
+    }
+
+    function setupEventListeners() {
+      document.getElementById("btn-pipeline").onclick = togglePipeline;
+
+      document.getElementById("slider-crossfader").oninput = (e) => {
+        updateCrossfadeGains(Number(e.target.value));
+      };
+
+      document.getElementById("slider-fusion").oninput = (e) => {
+        const neuralVal = e.target.value;
+        const nlmsVal = 100 - neuralVal;
+        document.getElementById("fusion-ratio-label").innerText = `${neuralVal}% Neural / ${nlmsVal}% NLMS`;
+        document.getElementById("meter-neural").style.width = `${neuralVal}%`;
+        document.getElementById("meter-nlms").style.width = `${nlmsVal}%`;
+      };
+
+      document.getElementById("slider-step-size").oninput = (e) => {
+        document.getElementById("step-size-label").innerText = parseFloat(e.target.value).toFixed(3);
+      };
+
+      document.getElementById("btn-export-csv").onclick = exportAuditCSV;
+
+      document.getElementById("btn-hw-tone").onclick = async () => {
+        await initAudioEngine();
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.value = 1000;
+        g.gain.value = 0.12;
+        osc.connect(g).connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+        showToast("Injected 1 kHz radio squelch tone.");
+      };
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderAllPresetUI();
+      resetChartsToZero();
+      setupEventListeners();
+      initCanvasSizes();
+      renderWaveforms();
+      startTelemetryJitter();
+    });
+  </script>
+</body>
+</html>
