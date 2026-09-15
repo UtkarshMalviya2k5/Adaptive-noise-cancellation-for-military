@@ -32,8 +32,10 @@ type AuditEvent = {
   level: string;
 };
 
-interface Window {
-  webkitAudioContext?: typeof AudioContext;
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
 }
 
 const SOLDIER_PRESETS: SoldierPreset[] = [
@@ -878,7 +880,7 @@ export default function App() {
     let rawByteData = new Uint8Array(256);
     let enhByteData = new Uint8Array(256);
 
-    const getElement = <T extends HTMLElement>(id: string) =>
+    const getElement = <T extends Element = HTMLElement>(id: string) =>
       document.getElementById(id) as T | null;
 
     function generateSyntheticCombatAudio(
